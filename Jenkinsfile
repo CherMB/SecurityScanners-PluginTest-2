@@ -99,7 +99,7 @@ pipeline {
                         name: "checkov-security-scan",
                         version: "1.0.0",
                         type: "security-scan",
-                        url: "https://jenkins-ninja-testing.saas-preprod.beescloud.com/job/QA-test-security-scanners-integrations/job/checkov/lastSuccessfulBuild/artifact/checkov-report.sarif",  
+                        url: "http://localhost/job/SecurityScanners-local/job/checkov/lastSuccessfulBuild/artifact/checkov-report.sarif",
                         digest: "6f637064707039346163663237383938",  
                         label: "qa",
                         security_scan: [
