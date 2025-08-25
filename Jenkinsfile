@@ -8,8 +8,6 @@ pipeline {
         DB_NAME = "my-app-db-1"
         SARIF_OUTPUT = "result1.sarif"
         GO_VERSION = "1.21.5"
-        GO_URL_X86 = "https://go.dev/dl/go1.21.5.linux-amd64.tar.gz"
-        GO_URL_ARM = "https://go.dev/dl/go1.21.5.linux-arm64.tar.gz"  // ARM64 URL
         GO_DIR = "${env.WORKSPACE}/go"
         GOROOT = "${env.WORKSPACE}/go"
         GOPATH = "${env.WORKSPACE}/go-packages"
@@ -20,47 +18,27 @@ pipeline {
         stage('Install Go') {
             steps {
                 echo "⬇️ Installing Go..."
-                script {
-                    def tempDir = sh(script: 'mktemp -d', returnStdout: true).trim()
-                    def arch = sh(script: 'uname -m', returnStdout: true).trim()
+                sh '''
+                    # Ensure bash is used
+                    export GO_TEMP_DIR=$(mktemp -d)
+
+                    # Downloading Go for ARM architecture
+                    curl -LO "https://go.dev/dl/go1.21.5.linux-arm64.tar.gz"
+
+                    # Ensure the file is downloaded correctly
+                    if [ ! -f go1.21.5.linux-arm64.tar.gz ]; then
+                        echo "Error: Go tarball not found."
+                        exit 1
+                    fi
+
+                    # Extract Go
+                    tar -xzf go1.21.5.linux-arm64.tar.gz -C "$GO_TEMP_DIR"
                     
-                    def goUrl
-                    if (arch == 'aarch64') {
-                        goUrl = GO_URL_ARM
-                        echo "Installing Go for ARM architecture (aarch64)..."
-                    } else if (arch == 'x86_64') {
-                        goUrl = GO_URL_X86
-                        echo "Installing Go for x86_64 architecture..."
-                    } else {
-                        error "Unsupported architecture: ${arch}. This pipeline supports x86_64 and aarch64 only."
-                    }
-
-                    // Download and extract the appropriate Go binary
-                    echo "⬇️ Downloading Go from ${goUrl}..."
-                    sh """
-                        curl -LO ${goUrl}
-                        if [[ ! -f go1.21.5.linux-${arch}.tar.gz ]]; then
-                            echo "Error: Go tarball not found."
-                            exit 1
-                        fi
-                        tar -xzf go1.21.5.linux-${arch}.tar.gz -C ${tempDir}
-                        rm -rf ${GO_DIR}
-                        mv ${tempDir}/go ${GO_DIR}
-                        echo "✅ Go installed at ${GO_DIR}"
-                    """
-                }
-            }
-        }
-
-        stage('Check System Architecture') {
-            steps {
-                script {
-                    def arch = sh(script: 'uname -m', returnStdout: true).trim()
-                    if (arch != 'x86_64' && arch != 'aarch64') {
-                        error "⚠️ Unsupported architecture: ${arch}. This pipeline requires x86_64 or aarch64 architecture."
-                    }
-                    echo "✅ Architecture is supported: ${arch}"
-                }
+                    # Remove old Go installation and move the new one
+                    rm -rf "$GO_DIR"
+                    mv "$GO_TEMP_DIR/go" "$GO_DIR"
+                    echo "✅ Go installed at $GO_DIR"
+                '''
             }
         }
 
@@ -72,17 +50,6 @@ pipeline {
                     curl -L "$CODEQL_URL" -o codeql-bundle.tar.gz
                     tar -xzf codeql-bundle.tar.gz -C "$CODEQL_DIR" --strip-components=1
                     echo "✅ CodeQL installed to $CODEQL_DIR"
-                '''
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                echo "⬇️ Installing necessary dependencies..."
-                sh '''
-                    sudo apt-get update
-                    sudo apt-get install -y libc6 lib32gcc1
-                    echo "✅ Dependencies installed"
                 '''
             }
         }
@@ -114,17 +81,20 @@ pipeline {
             }
         }
 
-        stage('Publish SARIF to Dashboard') {
+        stage('Display SARIF Report') {
             steps {
-                echo "📄 Publishing SARIF Report..."
-                archiveArtifacts artifacts: "$SARIF_OUTPUT", allowEmptyArchive: true, fingerprint: true
+                echo "📄 SARIF Report Preview:"
+                sh '''
+                    echo "=== SARIF Report Preview ==="
+                    head -n 20 "$SARIF_OUTPUT" || echo "SARIF not generated"
+                '''
             }
         }
     }
 
     post {
         always {
-            echo "✅ Build completed"
+            archiveArtifacts artifacts: "${SARIF_OUTPUT}", fingerprint: true
         }
     }
 }
