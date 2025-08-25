@@ -8,6 +8,8 @@ pipeline {
         DB_NAME = "my-app-db-1"
         SARIF_OUTPUT = "result1.sarif"
         GO_VERSION = "1.21.5"
+        GO_URL = "https://go.dev/dl/go1.21.5.linux-amd64.tar.gz"
+        GO_ARM_URL = "https://go.dev/dl/go1.21.5.linux-arm64.tar.gz"  // ARM URL
         GO_DIR = "${env.WORKSPACE}/go"
         GOROOT = "${env.WORKSPACE}/go"
         GOPATH = "${env.WORKSPACE}/go-packages"
@@ -18,14 +20,24 @@ pipeline {
         stage('Install Go') {
             steps {
                 echo "⬇️ Installing Go..."
-                sh '''
-                    export GO_TEMP_DIR=$(mktemp -d)
-                    curl -LO "https://go.dev/dl/go1.21.5.linux-amd64.tar.gz"
-                    tar -xzf go1.21.5.linux-amd64.tar.gz -C "$GO_TEMP_DIR"
-                    rm -rf "$GO_DIR"
-                    mv "$GO_TEMP_DIR/go" "$GO_DIR"
-                    echo "✅ Go installed at $GO_DIR"
-                '''
+                script {
+                    // Create a temporary directory for Go installation
+                    def tempDir = sh(script: 'mktemp -d', returnStdout: true).trim()
+                    def arch = sh(script: 'uname -m', returnStdout: true).trim()
+
+                    // Choose the Go URL based on architecture
+                    def goUrl = (arch == 'aarch64') ? GO_ARM_URL : GO_URL
+                    echo "Installing Go for ${arch}..."
+
+                    // Download and install Go
+                    sh """
+                        curl -LO ${goUrl}
+                        tar -xzf go${GO_VERSION}.linux-${arch}.tar.gz -C ${tempDir}
+                        rm -rf ${GO_DIR}
+                        mv ${tempDir}/go ${GO_DIR}
+                        echo ✅ Go installed at ${GO_DIR}
+                    """
+                }
             }
         }
 
@@ -33,8 +45,8 @@ pipeline {
             steps {
                 script {
                     def arch = sh(script: 'uname -m', returnStdout: true).trim()
-                    if (arch != 'x86_64') {
-                        error "⚠️ Unsupported architecture: ${arch}. This pipeline requires x86_64 architecture."
+                    if (arch != 'x86_64' && arch != 'aarch64') {
+                        error "⚠️ Unsupported architecture: ${arch}. This pipeline requires x86_64 or aarch64 architecture."
                     }
                     echo "✅ Architecture is supported: ${arch}"
                 }
