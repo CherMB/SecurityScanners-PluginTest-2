@@ -29,6 +29,18 @@ pipeline {
             }
         }
 
+        stage('Check System Architecture') {
+            steps {
+                script {
+                    def arch = sh(script: 'uname -m', returnStdout: true).trim()
+                    if (arch != 'x86_64') {
+                        error "⚠️ Unsupported architecture: ${arch}. This pipeline requires x86_64 architecture."
+                    }
+                    echo "✅ Architecture is supported: ${arch}"
+                }
+            }
+        }
+
         stage('Download and Extract CodeQL') {
             steps {
                 echo "⬇️ Downloading CodeQL bundle..."
@@ -37,6 +49,17 @@ pipeline {
                     curl -L "$CODEQL_URL" -o codeql-bundle.tar.gz
                     tar -xzf codeql-bundle.tar.gz -C "$CODEQL_DIR" --strip-components=1
                     echo "✅ CodeQL installed to $CODEQL_DIR"
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                echo "⬇️ Installing necessary dependencies..."
+                sh '''
+                    sudo apt-get update
+                    sudo apt-get install -y libc6 lib32gcc1
+                    echo "✅ Dependencies installed"
                 '''
             }
         }
@@ -82,4 +105,3 @@ pipeline {
         }
     }
 }
- 
