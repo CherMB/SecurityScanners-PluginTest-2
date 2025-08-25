@@ -8,8 +8,8 @@ pipeline {
         DB_NAME = "my-app-db-1"
         SARIF_OUTPUT = "result1.sarif"
         GO_VERSION = "1.21.5"
-        GO_URL = "https://go.dev/dl/go1.21.5.linux-amd64.tar.gz"
-        GO_ARM_URL = "https://go.dev/dl/go1.21.5.linux-arm64.tar.gz"  // ARM URL
+        GO_URL_X86 = "https://go.dev/dl/go1.21.5.linux-amd64.tar.gz"
+        GO_URL_ARM = "https://go.dev/dl/go1.21.5.linux-arm64.tar.gz"  // ARM64 URL
         GO_DIR = "${env.WORKSPACE}/go"
         GOROOT = "${env.WORKSPACE}/go"
         GOPATH = "${env.WORKSPACE}/go-packages"
@@ -21,21 +21,32 @@ pipeline {
             steps {
                 echo "⬇️ Installing Go..."
                 script {
-                    // Create a temporary directory for Go installation
                     def tempDir = sh(script: 'mktemp -d', returnStdout: true).trim()
                     def arch = sh(script: 'uname -m', returnStdout: true).trim()
+                    
+                    def goUrl
+                    if (arch == 'aarch64') {
+                        goUrl = GO_URL_ARM
+                        echo "Installing Go for ARM architecture (aarch64)..."
+                    } else if (arch == 'x86_64') {
+                        goUrl = GO_URL_X86
+                        echo "Installing Go for x86_64 architecture..."
+                    } else {
+                        error "Unsupported architecture: ${arch}. This pipeline supports x86_64 and aarch64 only."
+                    }
 
-                    // Choose the Go URL based on architecture
-                    def goUrl = (arch == 'aarch64') ? GO_ARM_URL : GO_URL
-                    echo "Installing Go for ${arch}..."
-
-                    // Download and install Go
+                    // Download and extract the appropriate Go binary
+                    echo "⬇️ Downloading Go from ${goUrl}..."
                     sh """
                         curl -LO ${goUrl}
-                        tar -xzf go${GO_VERSION}.linux-${arch}.tar.gz -C ${tempDir}
+                        if [[ ! -f go1.21.5.linux-${arch}.tar.gz ]]; then
+                            echo "Error: Go tarball not found."
+                            exit 1
+                        fi
+                        tar -xzf go1.21.5.linux-${arch}.tar.gz -C ${tempDir}
                         rm -rf ${GO_DIR}
                         mv ${tempDir}/go ${GO_DIR}
-                        echo ✅ Go installed at ${GO_DIR}
+                        echo "✅ Go installed at ${GO_DIR}"
                     """
                 }
             }
