@@ -1,85 +1,53 @@
 pipeline {
     agent any
 
-    environment {
-        CODEQL_URL = "https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz"
-        CODEQL_DIR = "${env.WORKSPACE}/codeql"
-        SOURCE_DIR = "${env.WORKSPACE}/test-go-project"
-        DB_NAME = "my-app-db-1"
-        SARIF_OUTPUT = "result1.sarif"
-        GO_VERSION = "1.21.5"
-        GO_DIR = "${env.WORKSPACE}/go"
-        GOROOT = "${env.WORKSPACE}/go"
-        GOPATH = "${env.WORKSPACE}/go-packages"
-        PATH = "${env.WORKSPACE}/go/bin:${env.PATH}"
-    }
-
     stages {
-        stage('Install Go') {
-            steps {
-                echo "⬇️ Installing Go..."
-                sh '''
-                    export GO_TEMP_DIR=$(mktemp -d)
-                    curl -LO "https://go.dev/dl/go1.21.5.linux-amd64.tar.gz"
-                    tar -xzf go1.21.5.linux-amd64.tar.gz -C "$GO_TEMP_DIR"
-                    rm -rf "$GO_DIR"
-                    mv "$GO_TEMP_DIR/go" "$GO_DIR"
-                    echo "✅ Go installed at $GO_DIR"
-                '''
+        stage('Build') {
+            stages {
+                stage('Compile') {
+                    steps {
+                        echo 'Compiling...'
+                        sleep 10
+                    }
+                }
+                stage('Package') {
+                    steps {
+                        echo 'Packaging...'
+                        sleep 5
+                    }
+                }
             }
         }
 
-        stage('Download and Extract CodeQL') {
+        stage('Registering build artifact') {
             steps {
-                echo "⬇️ Downloading CodeQL bundle..."
-                sh '''
-                    mkdir -p "$CODEQL_DIR"
-                    curl -L "$CODEQL_URL" -o codeql-bundle.tar.gz
-                    tar -xzf codeql-bundle.tar.gz -C "$CODEQL_DIR" --strip-components=1
-                    echo "✅ CodeQL installed to $CODEQL_DIR"
-                '''
+                echo 'Registering the metadata'
+                echo 'Another echo to make the pipeline a bit more complex'
+                registerBuildArtifactMetadata(
+                    name: "artifacts-ninja-QA-comp-testing-0005",
+                    version: "1.0.05",
+                    type: "docker",
+                    url: "http://localhost:0005",
+                    digest: "6f637064707039346163663237383938",
+                    label: "qa-ninja"
+                )
             }
         }
 
-        stage('Create CodeQL Database') {
+        stage('Test') {
             steps {
-                echo "📦 Creating CodeQL database from source..."
-                sh '''
-                    rm -rf "$DB_NAME"
-                    export PATH="$GO_DIR/bin:$PATH"
-                    export GOROOT="$GO_DIR"
-                    export GOPATH="$GOPATH"
-                    "$CODEQL_DIR/codeql" database create "$DB_NAME" \
-                      --language=go \
-                      --source-root="$SOURCE_DIR"
-                '''
+                echo 'Running Unit Tests...'
+                sleep 10
+                echo 'Running Integration Tests...'
+                sleep 5
             }
         }
 
-        stage('Analyze Code with CodeQL') {
+        stage('Deploy') {
             steps {
-                echo "🔍 Running CodeQL analysis..."
-                sh '''
-                    "$CODEQL_DIR/codeql" database analyze "$DB_NAME" \
-                      codeql/go-queries \
-                      --format=sarifv2.1.0 \
-                      --output="$SARIF_OUTPUT"
-                '''
+                echo 'Deploying...'
+                sleep 5
             }
-        }
-
-        stage('Publish SARIF to Dashboard') {
-            steps {
-                echo "📄 Publishing SARIF Report..."
-                archiveArtifacts artifacts: "$SARIF_OUTPUT", allowEmptyArchive: true, fingerprint: true
-            }
-        }
-    }
-
-    post {
-        always {
-            echo "✅ Build completed"
         }
     }
 }
-   
