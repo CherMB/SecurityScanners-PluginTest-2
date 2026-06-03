@@ -1,0 +1,25 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: approval-test
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    steps:
+      - name: Say hello
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: |
+          echo "hello world"
+    needs:
+      - approve_me
+  approve_me:
+    with:
+      instructions: ""
+      disallowLaunchByUser: false
+      approvers: 849c0ab0-b922-4ded-bc3d-1168892a15a6
+      notifyAllEligibleUsers: false
+    timeout-minutes: 5
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+
+
