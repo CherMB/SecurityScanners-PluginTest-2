@@ -17,7 +17,7 @@ jobs:
     with:
       instructions: ""
       disallowLaunchByUser: false
-      approvers: 8509888e-d27f-44fa-46a9-29bc76f5e790
+      approvers: aramachandran@cloudbees.com
       notifyAllEligibleUsers: false
     timeout-minutes: 5
     delegates: cloudbees-io/manual-approval/custom-job.yml@v1
