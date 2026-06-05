@@ -26,7 +26,7 @@ jobs:
   deploy:
     needs:
       - build
-    environment: preprod
+    environment: staging
     steps:
       - name: Deploy step
         uses: docker://golang:1.20.3-alpine3.17
