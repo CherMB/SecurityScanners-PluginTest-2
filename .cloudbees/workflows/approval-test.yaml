@@ -4,15 +4,6 @@ name: approval-test
 on:
   workflow_dispatch:
 jobs:
-  build:
-    steps:
-      - name: Say hello
-        uses: docker://golang:1.20.3-alpine3.17
-        shell: sh
-        run: |
-          echo "hello world"
-    needs:
-      - approve_me
   approve_me:
     with:
       instructions: ""
@@ -22,4 +13,23 @@ jobs:
     timeout-minutes: 10
     delegates: cloudbees-io/manual-approval/custom-job.yml@v1
 
+  build:
+    needs:
+      - approve_me
+    steps:
+      - name: Say hello
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: |
+          echo "hello world"
 
+  deploy:
+    needs:
+      - build
+    environment: uhackers-prod
+    steps:
+      - name: Deploy step
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: |
+          echo "deploying to prod"
