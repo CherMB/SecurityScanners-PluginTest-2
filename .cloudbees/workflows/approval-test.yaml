@@ -10,7 +10,7 @@ jobs:
       disallowLaunchByUser: false
       approvers: aramachandran@cloudbees.com
       notifyAllEligibleUsers: false
-    timeout-minutes: 10
+    timeout-minutes: 2
     delegates: cloudbees-io/manual-approval/custom-job.yml@v1
 
   build:
