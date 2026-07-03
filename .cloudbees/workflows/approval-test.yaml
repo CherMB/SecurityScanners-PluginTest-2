@@ -12,7 +12,7 @@ jobs:
       notifyAllEligibleUsers: false
     timeout-minutes: 10
     delegates: cloudbees-io/manual-approval/custom-job.yml@v1
-
+ 
   # build:
   #   needs:
   #     - approve_me
