@@ -13,24 +13,24 @@ jobs:
     timeout-minutes: 10
     delegates: cloudbees-io/manual-approval/custom-job.yml@v1
 
-  build:
-    needs:
-      - approve_me
-    steps:
-      - name: Say hello
-        uses: docker://golang:1.20.3-alpine3.17
-        shell: sh
-        run: |
-          echo "hello world"
+  # build:
+  #   needs:
+  #     - approve_me
+  #   steps:
+  #     - name: Say hello
+  #       uses: docker://golang:1.20.3-alpine3.17
+  #       shell: sh
+  #       run: |
+  #         echo "hello world"
 
-  deploy:
-    needs:
-      - build
-    environment: preprod-us-east-1
-    steps:
-      - name: Deploy step
-        uses: docker://golang:1.20.3-alpine3.17
-        shell: sh
-        run: |
-          echo "deploying to prod"
+  # deploy:
+  #   needs:
+  #     - build
+  #   environment: preprod-us-east-1
+  #   steps:
+  #     - name: Deploy step
+  #       uses: docker://golang:1.20.3-alpine3.17
+  #       shell: sh
+  #       run: |
+  #         echo "deploying to prod"
  
